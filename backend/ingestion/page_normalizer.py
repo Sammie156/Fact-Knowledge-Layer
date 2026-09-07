@@ -1,18 +1,17 @@
 from dataclasses import dataclass
 
-import fitz
+import pymupdf
 
 
 @dataclass
 class LogicalPage:
     physical_page_number: int
+    logical_page_index: int
     region: str
-    bbox: fitz.Rect
+    bbox: pymupdf.Rect
 
 
-def normalize_page(
-    page: fitz.Page,
-) -> list[LogicalPage]:
+def normalize_page(page: pymupdf.Page) -> list[LogicalPage]:
     width = page.rect.width
     height = page.rect.height
     midpoint = width / 2
@@ -35,7 +34,6 @@ def normalize_page(
         else:
             right_blocks += 1
 
-    # Simple MVP heuristic for a two-up page.
     is_two_up = (
         width > height
         and left_blocks >= 5
@@ -46,6 +44,7 @@ def normalize_page(
         return [
             LogicalPage(
                 physical_page_number=page.number + 1,
+                logical_page_index=0,
                 region="full",
                 bbox=page.rect,
             )
@@ -54,8 +53,9 @@ def normalize_page(
     return [
         LogicalPage(
             physical_page_number=page.number + 1,
+            logical_page_index=0,
             region="left",
-            bbox=fitz.Rect(
+            bbox=pymupdf.Rect(
                 0,
                 0,
                 midpoint,
@@ -64,8 +64,9 @@ def normalize_page(
         ),
         LogicalPage(
             physical_page_number=page.number + 1,
+            logical_page_index=1,
             region="right",
-            bbox=fitz.Rect(
+            bbox=pymupdf.Rect(
                 midpoint,
                 0,
                 width,
