@@ -1,6 +1,64 @@
 from core.models import Fact
 
 
+# Canonical name → set of aliases that should resolve to it.
+# All values must be lowercase.
+ENTITY_ALIASES: dict[str, set[str]] = {
+    "delhivery": {
+        "delhivery limited",
+        "delhivery ltd",
+        "the company",
+        "company",
+        "the issuer",
+        "issuer",
+    },
+    "india": {
+        "goi",
+        "government of india",
+        "republic of india",
+        "indian government",
+        "rbi",
+        "reserve bank of india",
+        "ministry of finance",
+    },
+}
+
+# Attributes that are semantically equivalent across documents.
+# All values must be lowercase.
+ATTRIBUTE_ALIASES: dict[str, set[str]] = {
+    "revenue from operations": {
+        "revenue",
+        "net revenue",
+        "total revenue",
+        "revenue from services",
+        "operating revenue",
+    },
+    "total income": {
+        "total revenue",
+        "gross income",
+        "income",
+    },
+    "ebitda": {
+        "adjusted ebitda",
+        "operating ebitda",
+        "ebitda margin",
+    },
+    "profit after tax": {
+        "pat",
+        "net profit",
+        "net income",
+        "profit for the year",
+        "profit for the period",
+    },
+    "gdp growth": {
+        "gdp growth rate",
+        "real gdp growth",
+        "economic growth",
+        "gdp",
+    },
+}
+
+
 def normalize_text(value: str | None) -> str:
     if not value:
         return ""
@@ -13,9 +71,27 @@ def normalize_text(value: str | None) -> str:
     )
 
 
+def resolve_entity(entity: str) -> str:
+    """Normalize an entity string to its canonical form."""
+    normalized = normalize_text(entity)
+    for canonical, aliases in ENTITY_ALIASES.items():
+        if normalized == canonical or normalized in aliases:
+            return canonical
+    return normalized
+
+
+def resolve_attribute(attribute: str) -> str:
+    """Normalize an attribute string to its canonical form."""
+    normalized = normalize_text(attribute)
+    for canonical, aliases in ATTRIBUTE_ALIASES.items():
+        if normalized == canonical or normalized in aliases:
+            return canonical
+    return normalized
+
+
 def entity_similarity(a: Fact, b: Fact) -> float:
-    entity_a = normalize_text(a.entity)
-    entity_b = normalize_text(b.entity)
+    entity_a = resolve_entity(a.entity)
+    entity_b = resolve_entity(b.entity)
 
     if not entity_a or not entity_b:
         return 0.5
@@ -26,12 +102,14 @@ def entity_similarity(a: Fact, b: Fact) -> float:
     if entity_a in entity_b or entity_b in entity_a:
         return 0.8
 
-    return 0.0
+    # Don't hard-zero — entity naming is inconsistent across documents.
+    # Let vector similarity carry mismatched entities.
+    return 0.2
 
 
 def attribute_similarity(a: Fact, b: Fact) -> float:
-    attribute_a = normalize_text(a.attribute)
-    attribute_b = normalize_text(b.attribute)
+    attribute_a = resolve_attribute(a.attribute)
+    attribute_b = resolve_attribute(b.attribute)
 
     if not attribute_a or not attribute_b:
         return 0.5
@@ -55,9 +133,8 @@ def time_compatibility(a: Fact, b: Fact) -> float:
     if time_a == time_b:
         return 1.0
 
-    # Don't attempt to determine semantic equivalence here.
-    # Gemini will reason about things like:
-    # "FY24" vs "FY ended March 31, 2024".
+    # Gemini will reason about "FY24" vs "FY ended March 31, 2024".
+    # Return 0.5 rather than 0 — different periods are still worth comparing.
     return 0.5
 
 
@@ -71,8 +148,8 @@ def unit_compatibility(a: Fact, b: Fact) -> float:
     if unit_a == unit_b:
         return 1.0
 
-    # Different units may still represent the same quantity.
-    # e.g. INR Million vs ₹ Cr.
+    # Different units may represent the same quantity (INR Million vs ₹ Cr).
+    # Gemini handles the reconciliation later.
     return 0.5
 
 

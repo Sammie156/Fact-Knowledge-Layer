@@ -8,6 +8,7 @@ client = genai.Client(
     api_key=settings.gemini_api_key
 )
 
+
 def build_fact_text(
     entity: str,
     attribute: str,
@@ -16,26 +17,31 @@ def build_fact_text(
     time_scope: str | None,
     qualifiers: list | None,
 ) -> str:
-    # Build a natural language sentence instead of structured key-value
-    # This gives the embedding model much more to work with
-    
+    """
+    Build a natural language sentence for embedding.
+
+    Natural language embeds much better than structured key-value pairs
+    because embedding models are trained on prose. Repeating the attribute
+    increases its weight in the resulting vector, which improves recall
+    when searching for facts about the same metric.
+    """
     unit_str = f" {unit}" if unit else ""
     time_str = f" in {time_scope}" if time_scope else ""
     qualifier_str = ""
-    
+
     if qualifiers:
         q_parts = [f"{q['key']}: {q['value']}" for q in qualifiers]
         qualifier_str = f" ({', '.join(q_parts)})"
-    
+
     sentence = (
-        f"{entity} {attribute} was {value}{unit_str}{time_str}{qualifier_str}."
+        f"{entity} reported {attribute} of {value}{unit_str}{time_str}{qualifier_str}. "
+        f"This is a {attribute} figure."
     )
-    
+
     return sentence
 
 
 def generate_embedding(text: str) -> list[float]:
-
     response = client.models.embed_content(
         model="gemini-embedding-001",
         contents=text,

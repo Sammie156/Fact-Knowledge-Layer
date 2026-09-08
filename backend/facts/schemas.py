@@ -18,4 +18,22 @@ class Fact(BaseModel):
 
 
 class FactExtractionResult(BaseModel):
+    """Single-chunk extraction result. Used by save_facts()."""
     facts: list[Fact] = Field(default_factory=list)
+
+
+# ------------------------------------------------------------------
+# Batch extraction — one Gemini call for multiple chunks
+# ------------------------------------------------------------------
+
+class ChunkExtractionResult(BaseModel):
+    """Facts extracted from one chunk within a batch."""
+    chunk_index: int = Field(
+        description="The index of the chunk within the batch (0-based)."
+    )
+    facts: list[Fact] = Field(default_factory=list)
+
+
+class BatchExtractionResult(BaseModel):
+    """Result of a batched extraction call covering multiple chunks."""
+    chunks: list[ChunkExtractionResult] = Field(default_factory=list)
