@@ -34,8 +34,8 @@ def build_fact_text(
         qualifier_str = f" ({', '.join(q_parts)})"
 
     sentence = (
-        f"{entity} reported {attribute} of {value}{unit_str}{time_str}{qualifier_str}. "
-        f"This is a {attribute} figure."
+        f"{entity}: {attribute} is {value}{unit_str}{time_str}{qualifier_str}. "
+        f"Fact regarding {entity} {attribute}."
     )
 
     return sentence

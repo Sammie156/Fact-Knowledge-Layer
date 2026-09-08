@@ -28,20 +28,14 @@ Extract:
 - meaningful semantic facts
 
 Entity normalization rules:
-- If the document refers to "the Company", "the Issuer", or similar pronouns,
-  resolve the entity to the actual company name based on document context.
-- Use the most specific but consistent name: prefer "Delhivery" over
-  "Delhivery Limited" for consistency across documents.
-- Business segments (Express Parcel, PTL, Supply Chain) are NOT entities
-  unless the fact is exclusively about that segment with no parent company context.
-- For macroeconomic facts, entity should be "India" not "GoI" or "Government of India".
+- Resolve self-referential terms ("the Company", "the Issuer", "the Corporation", "the Government", "we", "our") to the canonical entity name identified from the document context.
+- Use the standard canonical entity name without trailing legal corporate suffixes (e.g. use "Acme" instead of "Acme Limited" or "Acme Inc.") unless the distinction between distinct legal subsidiaries is legally significant.
+- Specific operational divisions or segments are attributes/qualifiers rather than independent entities unless the fact is strictly specific to that division with no parent context.
+- For macroeconomic or jurisdictional facts, use the standardized name of the nation, state, or institution (e.g., "India" rather than "GoI", "Federal Reserve" rather than "the Fed").
 
-For financial facts, always check and record these qualifiers if present or inferable:
-- basis: "standalone" or "consolidated"
-- nature: "audited" or "unaudited" or "provisional"
-
-If a table contains both standalone and consolidated figures, extract them as
-separate facts with the appropriate qualifier — do not merge them.
+Qualifiers and context:
+- Always capture contextual qualifiers where present or inferable (e.g., basis: "standalone" vs "consolidated", nature: "audited" vs "unaudited" vs "provisional", scope: "domestic" vs "international").
+- If tabular data or reports present multiple perspectives (such as standalone vs consolidated, or revised vs provisional), extract each distinct figure as a separate fact with its respective qualifiers — do not merge them.
 
 Do not extract:
 - headings by themselves
@@ -91,7 +85,7 @@ Every chunk must appear in your response even if it has no facts.
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=settings.gemini_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
@@ -140,7 +134,7 @@ DOCUMENT CHUNK:
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=settings.gemini_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,

@@ -1,0 +1,387 @@
+{
+  "info": {
+    "_postman_id": "f8a91234-9c87-4b6a-9321-factknowledge01",
+    "name": "Fact Knowledge Layer API",
+    "description": "Postman collection for testing the Fact Knowledge Layer FastAPI application. Covers PDF uploads, document tracking, grounded fact inspection, cross-document reasoning (corroborates, contradicts, context_explained), and the 4 required assignment cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fact_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "relationship_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Verifies that the API server and PostgreSQL database are connected and operational."
+          },
+          "response": []
+        },
+        {
+          "name": "System Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats"]
+            },
+            "description": "Returns counts of documents, chunks, facts, and relationships broken down by type."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Upload PDF Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Select a PDF file to upload"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/upload?background=true&replace=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "upload"],
+              "query": [
+                {
+                  "key": "background",
+                  "value": "true",
+                  "description": "true = asynchronous background processing; false = wait synchronously"
+                },
+                {
+                  "key": "replace",
+                  "value": "false",
+                  "description": "true = delete and re-process if document filename already exists"
+                }
+              ]
+            },
+            "description": "Uploads a PDF file. Automatically extracts logical pages, chunks content, extracts grounded facts via Gemini, embeds them into pgvector, and runs cross-document comparisons."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            },
+            "description": "Lists all ingested documents with status, page counts, fact counts, and relationship counts."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Document Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{document_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{document_id}}"]
+            },
+            "description": "Returns details, processing status (processing, extracting_facts, comparing_facts, done), chunk count, and fact count."
+          },
+          "response": []
+        },
+        {
+          "name": "Reprocess Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{document_id}}/reprocess?background=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{document_id}}", "reprocess"],
+              "query": [
+                {
+                  "key": "background",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Re-runs the fact extraction and comparison pipeline for an existing document."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{document_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{document_id}}"]
+            },
+            "description": "Deletes a document and cascades to its chunks, facts, and associated relationships."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Facts",
+      "item": [
+        {
+          "name": "List / Search Facts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/facts?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facts"],
+              "query": [
+                {
+                  "key": "document_id",
+                  "value": "",
+                  "description": "Optional filter by document UUID",
+                  "disabled": true
+                },
+                {
+                  "key": "entity",
+                  "value": "Delhivery",
+                  "description": "Filter by entity name substring",
+                  "disabled": true
+                },
+                {
+                  "key": "attribute",
+                  "value": "revenue",
+                  "description": "Filter by attribute name substring",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "consolidated",
+                  "description": "Full search across entity, attribute, value, raw_text",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Retrieve grounded facts with page numbers and exact evidence snippets."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Fact by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/facts/{{fact_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facts", "{{fact_id}}"]
+            },
+            "description": "Get detailed attributes and grounded source quote of a specific fact."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Relationships (Cross-Document)",
+      "item": [
+        {
+          "name": "List All Relationships",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships"],
+              "query": [
+                {
+                  "key": "relationship_type",
+                  "value": "corroborates",
+                  "description": "corroborates | contradicts | context_explained",
+                  "disabled": true
+                },
+                {
+                  "key": "document_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List cross-document relationships with comparative source evidence and LLM reasoning."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: Corroborated Facts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships?relationship_type=corroborates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships"],
+              "query": [
+                {
+                  "key": "relationship_type",
+                  "value": "corroborates"
+                }
+              ]
+            },
+            "description": "Returns fact pairs where both documents corroborate each other."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: Contradictions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships?relationship_type=contradicts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships"],
+              "query": [
+                {
+                  "key": "relationship_type",
+                  "value": "contradicts"
+                }
+              ]
+            },
+            "description": "Returns fact pairs with genuine or likely contradictions."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: Context Explained Differences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships?relationship_type=context_explained",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships"],
+              "query": [
+                {
+                  "key": "relationship_type",
+                  "value": "context_explained"
+                }
+              ]
+            },
+            "description": "Returns apparent contradictions that are reconciled through context (standalone vs consolidated, time periods, units)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Relationship by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/{{relationship_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships", "{{relationship_id}}"]
+            },
+            "description": "Retrieve full comparative details of a specific relationship."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Cross-Document Comparison",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/relationships/compare",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "relationships", "compare"]
+            },
+            "description": "Manually triggers pairwise fact comparison across all completed documents."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assignment Showcase (The 4 Required Cases)",
+      "item": [
+        {
+          "name": "Get The Four Required Cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/showcase",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "showcase"]
+            },
+            "description": "Returns the 4 required cases mandated by the Superjoin Hiring Assignment: (1) Corroborated across documents, (2) Genuine contradiction, (3) Apparent contradiction explained by context, (4) Extraction/reasoning failure analysis."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

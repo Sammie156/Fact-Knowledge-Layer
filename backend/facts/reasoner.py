@@ -45,20 +45,22 @@ Relationship types:
   same subject in the same time period with no contextual explanation.
 - context_explained: Facts appear to conflict but the difference is
   explained by context — different time periods, different accounting
-  bases (standalone vs consolidated), different units, different scopes,
-  or one being a revision of a provisional figure.
+  bases (e.g., standalone vs consolidated), different reporting units or scales,
+  different scopes/definitions, or one being a revision of a provisional figure.
 - unrelated: Facts are about different subjects and cannot be meaningfully
   compared.
 
 Rules:
 - If time periods differ, classify as context_explained, not contradicts.
-- If units differ (e.g. INR Million vs ₹ Crore), check if values are
-  consistent after conversion (1 Crore = 10 Million). If consistent,
-  classify as corroborates. If not, classify as context_explained.
-- standalone vs consolidated figures for the same metric and period
-  should be classified as context_explained, not contradicts.
-- Be specific in your explanation — cite the actual values and why
-  they agree or disagree.
+- If units or numerical scales differ (e.g., Millions vs Crores vs Billions,
+  percentages vs basis points), check if values are mathematically consistent
+  after conversion. If consistent, classify as corroborates. If not, classify
+  as context_explained.
+- Differences in scope or reporting basis (e.g., standalone vs consolidated,
+  gross vs net, recurring vs one-off) for the same metric and period should
+  be classified as context_explained, not contradicts.
+- Be specific in your explanation — cite the actual values, units, and why
+  they agree, conflict, or reconcile.
 """
 
 
@@ -98,7 +100,7 @@ def compare_facts(
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=settings.gemini_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=COMPARISON_SYSTEM_PROMPT,

@@ -1,31 +1,77 @@
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from core.database import SessionLocal
-from core.models import Document, Chunk
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+import uvicorn
 
+from core.database import Base, engine, SessionLocal
+from core.models import Document, Chunk
 from ingestion.pdf_extractor import extract_pdf
 from ingestion.chunker import chunk_page
-
 from facts.pipeline import process_document
 from facts.reasoner import run_comparison_for_document
 
+from api.routes import documents, facts, relationships, showcase, stats
 
-def ingest_pdf(db, pdf_path: str) -> tuple[Document, bool]:
-    """
-    Returns (document, is_new).
-    If a document with this filename already exists, returns it as-is.
-    """
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Ensure database tables and vector extensions are created on startup."""
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("[Startup] Database tables verified.")
+    except Exception as exc:
+        print(f"[Startup Warning] Could not automatically create tables: {exc}")
+    yield
+
+
+app = FastAPI(
+    title="Fact Knowledge Layer API",
+    description=(
+        "AI-powered system that extracts factual claims from PDF documents, "
+        "grounds each fact in verified source evidence, and discovers cross-document "
+        "corroborations, contradictions, and context-explained reconciliations."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# Enable CORS for browser testing, Postman, and frontend clients
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register API Routers
+app.include_router(documents.router, prefix="/api")
+app.include_router(facts.router, prefix="/api")
+app.include_router(relationships.router, prefix="/api")
+app.include_router(showcase.router, prefix="/api")
+app.include_router(stats.router, prefix="/api")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """Redirect root directly to interactive Swagger API documentation."""
+    return RedirectResponse(url="/docs")
+
+
+# ----------------------------------------------------------------------
+# CLI Fallback (Preserving terminal script functionality)
+# ----------------------------------------------------------------------
+
+def ingest_pdf_cli(db, pdf_path: str) -> tuple[Document, bool]:
     path = Path(pdf_path)
-
     if not path.exists():
         raise FileNotFoundError(f"PDF not found: {path}")
 
-    # Check if already ingested
-    existing = db.query(Document).filter(
-        Document.filename == path.name
-    ).first()
-
+    existing = db.query(Document).filter(Document.filename == path.name).first()
     if existing:
         print(f"Found existing document: {existing.id} (status: {existing.status})")
         return existing, False
@@ -60,20 +106,19 @@ def ingest_pdf(db, pdf_path: str) -> tuple[Document, bool]:
     db.commit()
     print(f"Created document  : {document.id}")
     print(f"Created chunks    : {total_chunks}")
-
     return document, True
 
 
-def main():
+def run_cli():
+    print("FACT KNOWLEDGE LAYER - CLI MODE")
     if len(sys.argv) < 2:
         print("Usage: python main.py <path-to-pdf>")
+        print("Or run the API server: uvicorn main:app --reload")
         sys.exit(1)
 
     db = SessionLocal()
-
     try:
-        document, is_new = ingest_pdf(db, sys.argv[1])
-
+        document, is_new = ingest_pdf_cli(db, sys.argv[1])
         if document.status == "done":
             print("Document already fully processed. Running comparison only.")
             run_comparison_for_document(db=db, document_id=document.id)
@@ -82,16 +127,12 @@ def main():
         print("\n" + "=" * 50)
         print("FACT EXTRACTION")
         print("=" * 50)
-
         total_facts = process_document(db=db, document_id=document.id)
 
         print("\n" + "=" * 50)
         print("CROSS-DOCUMENT COMPARISON")
         print("=" * 50)
-
-        total_relationships = run_comparison_for_document(
-            db=db, document_id=document.id
-        )
+        total_relationships = run_comparison_for_document(db=db, document_id=document.id)
 
         print("\n" + "=" * 50)
         print("PIPELINE COMPLETE")
@@ -99,6 +140,13 @@ def main():
         print(f"Document      : {document.filename}")
         print(f"Facts saved   : {total_facts}")
         print(f"Relationships : {total_relationships}")
-
     finally:
         db.close()
+
+
+if __name__ == "__main__":
+    # If a PDF file path is given as argument, run CLI; otherwise launch server
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".pdf"):
+        run_cli()
+    else:
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

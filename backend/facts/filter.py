@@ -6,10 +6,11 @@ NUMBER_PATTERN = re.compile(r"\b\d[\d,]*(?:\.\d+)?")
 # Matches percentages explicitly
 PERCENTAGE_PATTERN = re.compile(r"\d+(?:\.\d+)?\s*%")
 
-# Matches Indian/global currency
-CURRENCY_PATTERN = re.compile(r"[₹$€£]\s*\d|INR|USD|EUR")
+# Matches global currency symbols and codes
+CURRENCY_PATTERN = re.compile(r"[₹$€£¥]\s*\d|INR|USD|EUR|GBP|JPY")
 
 FACTUAL_WORDS = [
+    # Financial & metrics
     "revenue",
     "profit",
     "loss",
@@ -18,19 +19,40 @@ FACTUAL_WORDS = [
     "ebitda",
     "margin",
     "growth",
+    "sales",
+    "earnings",
+    "dividend",
+    "cash flow",
+    "debt",
+    "equity",
+    "assets",
+    "liabilities",
+    "valuation",
+    "expenditure",
+    "budget",
+    "cost",
+    # Operational & scale
     "employees",
     "headcount",
     "customers",
     "users",
     "orders",
-    "shipments",
-    "parcels",
     "volume",
     "capacity",
     "network",
-    "pin code",
-    "pincode",
-    "pin-code",
+    "production",
+    "units",
+    "subscribers",
+    # Macro & market
+    "gdp",
+    "inflation",
+    "interest rate",
+    "exports",
+    "imports",
+    "deficit",
+    "surplus",
+    "index",
+    # Reporting periods
     "fy",
     "fiscal",
     "year ended",
@@ -39,16 +61,7 @@ FACTUAL_WORDS = [
     "q2",
     "q3",
     "q4",
-    "gdp",
-    "inflation",
-    "cpi",
-    "wpi",
-    "interest rate",
-    "repo rate",
-    "forex",
-    "trade deficit",
-    "exports",
-    "imports",
+    "annual",
 ]
 
 SEMANTIC_SIGNALS = [
@@ -59,6 +72,7 @@ SEMANTIC_SIGNALS = [
     "opened",
     "closed",
     "appointed",
+    "resigned",
     "introduced",
     "increased",
     "decreased",
@@ -69,20 +83,43 @@ SEMANTIC_SIGNALS = [
     "achieved",
     "crossed",
     "reached",
+    "established",
+    "founded",
+    "partnered",
+    "approved",
+    "certified",
+]
+
+GOVERNANCE_SIGNALS = [
+    "director",
+    "managing director",
+    "executive",
+    "ceo",
+    "cfo",
+    "cto",
+    "board of directors",
+    "resignation",
+    "appointment",
+    "headquarters",
+    "headquartered",
+    "registered office",
+    "subsidiary",
+    "merger",
+    "acquisition",
+    "auditor",
 ]
 
 
 def looks_fact_bearing(text: str) -> bool:
     """
     Returns True if the chunk is likely to contain at least one
-    extractable fact worth sending to Gemini.
+    extractable factual claim (numerical or semantic).
 
-    Requires BOTH:
-      - a concrete number or currency symbol, AND
-      - a factual keyword or semantic signal
-
-    This cuts ~50% of chunks that contain signal words like "revenue"
-    or "growth" in narrative text without any actual figures.
+    Accepts:
+      1. Numerical facts: contains a number/currency/percent AND a factual keyword
+         or semantic action.
+      2. Non-numerical semantic facts: contains a governance/corporate signal AND
+         a semantic action (e.g. appointments, resignations, headquarters, mergers).
     """
     text = text.strip()
 
@@ -97,11 +134,16 @@ def looks_fact_bearing(text: str) -> bool:
         or bool(CURRENCY_PATTERN.search(text))
     )
 
-    # No number means no extractable fact — skip immediately
-    if not has_number:
-        return False
-
     has_factual_word = any(word in text_lower for word in FACTUAL_WORDS)
     has_semantic_signal = any(word in text_lower for word in SEMANTIC_SIGNALS)
+    has_governance = any(word in text_lower for word in GOVERNANCE_SIGNALS)
 
-    return has_factual_word or has_semantic_signal
+    # 1. Quantitative facts: numbers accompanied by metrics or actions
+    if has_number and (has_factual_word or has_semantic_signal or has_governance):
+        return True
+
+    # 2. Pure semantic facts: governance/corporate state changes (even without numbers)
+    if has_governance and has_semantic_signal:
+        return True
+
+    return False
