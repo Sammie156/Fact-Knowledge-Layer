@@ -1,44 +1,50 @@
-from ingestion.pdf_extractor import extract_pdf
-from ingestion.chunker import chunk_page
-from facts.extractor import extract_facts
+from facts.filter import looks_fact_bearing
 
 
-PDF_PATH = "C:/Users/saman/Downloads/02-delhivery-annual-report-fy24-excerpt.pdf"
+SHOULD_PASS = [
+    "Revenue increased by 20% during FY2024.",
+    "The company expanded its delivery network.",
+    "The company acquired 51% of XYZ Logistics.",
+    "Profit for the year was ₹1,250 million.",
+    "The company had 45,000 employees.",
+    "Revenue from operations was $2.4 billion.",
+    "The company entered the European market.",
+    "The number of customers grew significantly.",
+]
 
 
-pages = extract_pdf(PDF_PATH)
+SHOULD_SKIP = [
+    "Annual Report 2023-24",
+    "Financial Statements",
+    "Corporate Overview",
+    "Table of Contents",
+    "43",
+    "Management Discussion and Analysis",
+    "Notes to the Financial Statements",
+    "This page has been intentionally left blank.",
+]
 
-for page in pages:
 
-    chunks = chunk_page(page)
+def test_should_pass():
+    for text in SHOULD_PASS:
+        result = looks_fact_bearing(text)
 
-    for chunk in chunks:
+        assert result, f"Expected PASS but got SKIP: {text}"
 
-        print("\n" + "=" * 80)
-        print(
-            f"PAGE {page.physical_page_number} | "
-            f"LOGICAL PAGE {page.logical_page_index} | "
-            f"CHUNK {chunk.chunk_index}"
-        )
-        print("=" * 80)
+    print(f"✓ {len(SHOULD_PASS)} fact-bearing tests passed")
 
-        result = extract_facts(chunk.content)
 
-        print(f"Facts found: {len(result.facts)}")
+def test_should_skip():
+    for text in SHOULD_SKIP:
+        result = looks_fact_bearing(text)
 
-        for fact in result.facts:
-            print("\nFACT")
-            print(f"  Entity:      {fact.entity}")
-            print(f"  Attribute:   {fact.attribute}")
-            print(f"  Value:       {fact.value}")
-            print(f"  Unit:        {fact.unit}")
-            print(f"  Time:        {fact.time_scope}")
-            print(
-                    "  Qualifiers: ",
-                        [
-                            f"{q.key}={q.value}"
-                            for q in fact.qualifiers
-                        ]
-                )
-            print(f"  Confidence:  {fact.confidence}")
-            print(f"  Evidence:    {fact.raw_text}")
+        assert not result, f"Expected SKIP but got PASS: {text}"
+
+    print(f"✓ {len(SHOULD_SKIP)} noise tests passed")
+
+
+if __name__ == "__main__":
+    test_should_pass()
+    test_should_skip()
+
+    print("\nAll filter tests passed.")
