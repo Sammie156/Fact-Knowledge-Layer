@@ -1,0 +1,16 @@
+{
+  "name": "fact-knowledge-layer-ui",
+  "version": "1.0.0",
+  "description": "Minimal dark-mode Web UI for the Fact Knowledge Layer",
+  "scripts": {
+    "dev": "npx -y serve . -p 3000",
+    "start": "npx -y serve . -p 3000"
+  },
+  "keywords": [
+    "facts",
+    "knowledge-graph",
+    "pdf-intelligence",
+    "gemini"
+  ],
+  "license": "MIT"
+}

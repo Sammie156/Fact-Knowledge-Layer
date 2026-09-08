@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fact Knowledge Layer | Cross-Document Intelligence</title>
+  <meta name="description" content="AI-powered Fact Knowledge Layer: extracts grounded factual claims from PDFs, resolves evidence, and reasons over corroboration, contradiction, and context-explained reconciliations.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Navigation & Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-mark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Fact Knowledge Layer</h1>
+          <p class="brand-subtitle">Cross-Document Evidence Grounding &amp; Reasoning</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="status-badge" id="api-status-badge">
+          <span class="pulse-dot"></span>
+          <span id="api-status-text">Connecting to API...</span>
+        </div>
+        <a href="/docs" target="_blank" class="docs-link" title="Open FastAPI Swagger Documentation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          API Docs
+        </a>
+      </div>
+    </header>
+
+    <!-- Knowledge Layer Metric Counters -->
+    <section class="stats-ribbon" id="stats-ribbon">
+      <div class="stat-card">
+        <span class="stat-label">Ingested Documents</span>
+        <span class="stat-value" id="stat-docs">-</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Grounded Facts</span>
+        <span class="stat-value" id="stat-facts">-</span>
+      </div>
+      <div class="stat-card stat-corrob">
+        <span class="stat-label">Corroborated Pairs</span>
+        <span class="stat-value" id="stat-corrob">-</span>
+      </div>
+      <div class="stat-card stat-contradict">
+        <span class="stat-label">Contradictions</span>
+        <span class="stat-value" id="stat-contradict">-</span>
+      </div>
+      <div class="stat-card stat-context">
+        <span class="stat-label">Context-Explained</span>
+        <span class="stat-value" id="stat-context">-</span>
+      </div>
+    </section>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="main-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="relationships" id="tab-btn-relationships">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="18" r="3"></circle>
+          <circle cx="6" cy="6" r="3"></circle>
+          <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+          <line x1="6" y1="9" x2="6" y2="21"></line>
+        </svg>
+        Relationships Dashboard
+        <span class="tab-counter" id="tab-count-relationships">0</span>
+      </button>
+
+      <button class="tab-btn showcase-tab-btn" data-tab="showcase" id="tab-btn-showcase">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        The 4 Required Cases
+        <span class="badge-gold">Superjoin</span>
+      </button>
+
+      <button class="tab-btn" data-tab="facts" id="tab-btn-facts">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+        </svg>
+        Grounded Facts Explorer
+        <span class="tab-counter" id="tab-count-facts">0</span>
+      </button>
+
+      <button class="tab-btn" data-tab="upload" id="tab-btn-upload">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Upload &amp; Documents
+        <span class="tab-counter" id="tab-count-docs">0</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: RELATIONSHIPS DASHBOARD -->
+    <main class="tab-pane active" id="pane-relationships">
+      <div class="pane-toolbar">
+        <div class="filter-chips">
+          <button class="chip active" data-filter="all">All Pairs</button>
+          <button class="chip chip-corrob" data-filter="corroborates">
+            <span class="dot"></span> Corroborated
+          </button>
+          <button class="chip chip-contradict" data-filter="contradicts">
+            <span class="dot"></span> Contradictions
+          </button>
+          <button class="chip chip-context" data-filter="context_explained">
+            <span class="dot"></span> Context-Explained
+          </button>
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" id="btn-recompare" title="Trigger cross-document comparison across all docs">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Re-compare All
+          </button>
+          <button class="btn btn-secondary" id="btn-refresh-relationships" title="Refresh relationships">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="relationships-container" id="relationships-list">
+        <div class="loading-spinner-state">
+          <div class="spinner"></div>
+          <p>Loading cross-document reasoning relationships...</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: THE FOUR REQUIRED CASES (SHOWCASE) -->
+    <section class="tab-pane" id="pane-showcase">
+      <div class="showcase-banner">
+        <div class="banner-badge">Official Submission View</div>
+        <h2>The Four Required Evaluation Cases</h2>
+        <p>Direct demonstration of cross-document verification, conflicting metrics, context reconciliations (scope/time/units), and extraction diagnostic analysis.</p>
+      </div>
+
+      <div class="showcase-cards-grid" id="showcase-cards-container">
+        <div class="loading-spinner-state">
+          <div class="spinner"></div>
+          <p>Loading curated showcase cases...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: GROUNDED FACTS EXPLORER -->
+    <section class="tab-pane" id="pane-facts">
+      <div class="pane-toolbar">
+        <div class="search-input-wrapper">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="facts-search-input" placeholder="Search by entity, metric attribute, or evidence quote..." />
+        </div>
+
+        <select class="select-dropdown" id="facts-doc-filter">
+          <option value="">All Documents</option>
+        </select>
+      </div>
+
+      <div class="facts-grid" id="facts-container">
+        <div class="loading-spinner-state">
+          <div class="spinner"></div>
+          <p>Loading extracted facts with grounded source evidence...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: UPLOAD & DOCUMENTS -->
+    <section class="tab-pane" id="pane-upload">
+      <div class="upload-layout">
+        
+        <!-- Dropzone Area -->
+        <div class="dropzone-panel">
+          <div class="dropzone-box" id="pdf-dropzone">
+            <input type="file" id="file-input" accept="application/pdf" style="display: none;" />
+            <div class="dropzone-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="12" y2="12"></line>
+                <line x1="15" y1="15" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <h3>Drop PDF file here</h3>
+            <p>or click to browse from your computer</p>
+            <div class="dropzone-meta">Accepts standard PDFs, prospectuses, annual reports</div>
+          </div>
+
+          <!-- Active Upload Tracker -->
+          <div class="upload-progress-card hidden" id="upload-progress-card">
+            <div class="progress-header">
+              <div class="file-name-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                </svg>
+                <span id="active-upload-filename">document.pdf</span>
+              </div>
+              <span class="status-chip chip-processing" id="active-upload-status">Processing</span>
+            </div>
+            
+            <div class="pipeline-stepper">
+              <div class="step-item active" id="step-upload">1. Ingestion</div>
+              <div class="step-arrow">&rarr;</div>
+              <div class="step-item" id="step-extract">2. Fact Extraction</div>
+              <div class="step-arrow">&rarr;</div>
+              <div class="step-item" id="step-compare">3. Cross-Reasoning</div>
+            </div>
+
+            <p class="progress-detail" id="active-upload-msg">Extracting logical pages &amp; structured claims via Gemini...</p>
+          </div>
+        </div>
+
+        <!-- Ingested Documents List -->
+        <div class="documents-panel">
+          <div class="panel-header">
+            <h3>Knowledge Layer Documents</h3>
+            <button class="btn-icon" id="btn-refresh-docs" title="Refresh document list">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="documents-list" id="documents-container">
+            <!-- Dynamic document rows will be injected here -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Global Toast / Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

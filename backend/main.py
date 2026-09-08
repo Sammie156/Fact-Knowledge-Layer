@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from core.database import Base, engine, SessionLocal
@@ -55,11 +56,14 @@ app.include_router(relationships.router, prefix="/api")
 app.include_router(showcase.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
 
-
-@app.get("/", include_in_schema=False)
-def root():
-    """Redirect root directly to interactive Swagger API documentation."""
-    return RedirectResponse(url="/docs")
+# Mount Frontend UI (served at root '/')
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+else:
+    @app.get("/", include_in_schema=False)
+    def root():
+        return RedirectResponse(url="/docs")
 
 
 # ----------------------------------------------------------------------
