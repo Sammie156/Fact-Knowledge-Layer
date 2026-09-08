@@ -4,7 +4,7 @@ from core.models import Document
 from facts.embed_pipeline import embed_document_facts
 
 
-DOCUMENT_FILENAME = "03-delhivery-q4-fy24-earnings-presentation.pdf"
+DOCUMENT_FILENAME = "02-delhivery-annual-report-fy24-excerpt.pdf"
 
 
 db = SessionLocal()

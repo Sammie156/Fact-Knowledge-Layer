@@ -8,7 +8,6 @@ client = genai.Client(
     api_key=settings.gemini_api_key
 )
 
-
 def build_fact_text(
     entity: str,
     attribute: str,
@@ -17,23 +16,22 @@ def build_fact_text(
     time_scope: str | None,
     qualifiers: list | None,
 ) -> str:
-
-    parts = [
-        f"Entity: {entity}",
-        f"Attribute: {attribute}",
-        f"Value: {value}",
-    ]
-
-    if unit:
-        parts.append(f"Unit: {unit}")
-
-    if time_scope:
-        parts.append(f"Time scope: {time_scope}")
-
+    # Build a natural language sentence instead of structured key-value
+    # This gives the embedding model much more to work with
+    
+    unit_str = f" {unit}" if unit else ""
+    time_str = f" in {time_scope}" if time_scope else ""
+    qualifier_str = ""
+    
     if qualifiers:
-        parts.append(f"Qualifiers: {qualifiers}")
-
-    return "\n".join(parts)
+        q_parts = [f"{q['key']}: {q['value']}" for q in qualifiers]
+        qualifier_str = f" ({', '.join(q_parts)})"
+    
+    sentence = (
+        f"{entity} {attribute} was {value}{unit_str}{time_str}{qualifier_str}."
+    )
+    
+    return sentence
 
 
 def generate_embedding(text: str) -> list[float]:

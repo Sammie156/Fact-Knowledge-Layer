@@ -43,3 +43,30 @@ def embed_document_facts(
     db.commit()
 
     return embedded_count
+
+def deduplicate_facts(db: Session, document_id) -> int:
+    """
+    Remove exact duplicates: same entity, attribute, value, time_scope, 
+    and same qualifier basis within the same document.
+    Keep the one with higher confidence.
+    """
+    from sqlalchemy import text
+
+    result = db.execute(text("""
+        DELETE FROM facts
+        WHERE id IN (
+            SELECT id FROM (
+                SELECT id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY document_id, entity, attribute, value, time_scope
+                           ORDER BY confidence DESC
+                       ) AS rn
+                FROM facts
+                WHERE document_id = :doc_id
+            ) ranked
+            WHERE rn > 1
+        )
+    """), {"doc_id": str(document_id)})
+
+    db.commit()
+    return result.rowcount

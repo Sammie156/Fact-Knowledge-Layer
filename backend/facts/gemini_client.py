@@ -27,6 +27,22 @@ Extract:
 - named entities and their attributes
 - meaningful semantic facts
 
+Entity normalization rules:
+- If the document refers to "the Company", "the Issuer", or similar pronouns,
+  resolve the entity to the actual company name based on document context.
+- Use the most specific but consistent name: prefer "Delhivery" over 
+  "Delhivery Limited" for consistency across documents.
+- Business segments (Express Parcel, PTL, Supply Chain) are NOT entities 
+  unless the fact is exclusively about that segment with no parent company context.
+- For macroeconomic facts, entity should be "India" not "GoI" or "Government of India".
+
+For financial facts, always check and record these qualifiers if present or inferable:
+- basis: "standalone" or "consolidated"  
+- nature: "audited" or "unaudited" or "provisional"
+
+If a table contains both standalone and consolidated figures, extract them as 
+separate facts with the appropriate qualifier — do not merge them.
+
 Do not extract:
 - headings by themselves
 - generic statements with no meaningful factual content
@@ -60,7 +76,7 @@ DOCUMENT CHUNK:
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-3.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
