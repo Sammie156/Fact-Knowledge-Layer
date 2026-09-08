@@ -51,3 +51,35 @@ def generate_embedding(text: str) -> list[float]:
     )
 
     return response.embeddings[0].values
+
+
+def generate_embeddings_batch(
+    texts: list[str],
+    max_retries: int = 3,
+) -> list[list[float]]:
+    """
+    Generate embeddings for multiple texts in a single batch API call.
+    Drastically reduces API calls and avoids per-request rate limits.
+    """
+    if not texts:
+        return []
+
+    import time
+    for attempt in range(max_retries):
+        try:
+            response = client.models.embed_content(
+                model="gemini-embedding-001",
+                contents=texts,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=768,
+                ),
+            )
+            return [e.values for e in response.embeddings]
+        except Exception as exc:
+            if attempt == max_retries - 1:
+                raise
+            delay = 2 ** attempt
+            print(f"[Embeddings] Batch embedding attempt {attempt + 1} failed ({exc}). Retrying in {delay}s...")
+            time.sleep(delay)
+
+    raise RuntimeError("Unreachable")

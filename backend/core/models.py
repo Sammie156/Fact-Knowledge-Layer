@@ -40,9 +40,14 @@ class Document(Base):
     )
 
     status: Mapped[str] = mapped_column(
-        String(20),
+        String(50),
         nullable=False,
         default="pending",
+    )
+
+    error_message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )
 
     chunks = relationship(

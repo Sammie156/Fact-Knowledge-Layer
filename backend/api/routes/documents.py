@@ -46,10 +46,22 @@ def run_pipeline_sync(document_id: UUID, pdf_path: str):
         db.commit()
         print(f"[Pipeline] Finished {document.filename}: {facts_count} facts, {relationships_count} relationships.")
     except Exception as exc:
-        print(f"[Pipeline] Error processing {document_id}: {exc}")
+        err_str = str(exc)
+        print(f"[Pipeline] Error processing {document_id}: {err_str}")
         document = db.get(Document, document_id)
         if document:
-            document.status = "failed"
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                document.status = "quota_exceeded"
+                document.error_message = (
+                    "LLM rate limit / daily quota reached (429 RESOURCE_EXHAUSTED). "
+                    "Switch to Groq or provide a new API key in Settings (⚙️)."
+                )
+            elif "Groq Error" in err_str or "model_not_found" in err_str:
+                document.status = "failed"
+                document.error_message = err_str
+            else:
+                document.status = "failed"
+                document.error_message = err_str[:300]
             db.commit()
     finally:
         db.close()
@@ -187,11 +199,37 @@ def list_documents(db: Session = Depends(get_db)):
                 uploaded_at=doc.uploaded_at,
                 page_count=doc.page_count,
                 status=doc.status,
+                error_message=doc.error_message,
                 fact_count=fact_count,
                 relationship_count=rel_count,
             )
         )
     return results
+
+
+@router.post("/reset", status_code=200)
+def reset_knowledge_layer(db: Session = Depends(get_db)):
+    """
+    Completely reset the knowledge layer.
+    Deletes all relationships, facts, chunks, and documents, and cleans up uploaded files.
+    """
+    db.execute(delete(Relationship))
+    db.execute(delete(Fact))
+    db.execute(delete(Chunk))
+    db.execute(delete(Document))
+    db.commit()
+
+    if UPLOAD_DIR.exists():
+        for item in UPLOAD_DIR.iterdir():
+            if item.is_file():
+                try:
+                    item.unlink()
+                except Exception:
+                    pass
+
+    return {
+        "message": "Knowledge layer reset successfully. All documents, chunks, facts, and relationships have been deleted."
+    }
 
 
 @router.get("/{document_id}", response_model=DocumentDetailOut)
@@ -214,6 +252,7 @@ def get_document(document_id: UUID, db: Session = Depends(get_db)):
         uploaded_at=doc.uploaded_at,
         page_count=doc.page_count,
         status=doc.status,
+        error_message=doc.error_message,
         fact_count=fact_count,
         relationship_count=rel_count,
         chunk_count=chunk_count,

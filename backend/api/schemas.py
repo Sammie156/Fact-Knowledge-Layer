@@ -18,6 +18,7 @@ class DocumentOut(DocumentBase):
     uploaded_at: datetime
     page_count: int | None = None
     status: str
+    error_message: str | None = None
     fact_count: int = 0
     relationship_count: int = 0
 
@@ -103,6 +104,7 @@ class UploadResponse(BaseModel):
     document_id: UUID
     filename: str
     status: str
+    error_message: str | None = None
     page_count: int | None = None
     facts_extracted: int | None = None
     relationships_found: int | None = None

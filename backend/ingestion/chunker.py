@@ -11,31 +11,39 @@ class ChunkData:
     chunk_type: str
 
 
-MIN_CHUNK_CHARS = 200
-MAX_CHUNK_CHARS = 1500
+MIN_CHUNK_CHARS = 600
+MAX_CHUNK_CHARS = 4500
 
 
 def chunk_page(page: ExtractedPage) -> list[ChunkData]:
-    chunks = []
+    """
+    Chunks an extracted logical page.
+    - If the page in total is <= MAX_CHUNK_CHARS, emit it as a single chunk.
+    - If the page exceeds MAX_CHUNK_CHARS, split along layout block boundaries.
+    - Merges small trailing blocks (< MIN_CHUNK_CHARS) into the preceding chunk
+      to prevent fragmented micro-chunks that cause excessive LLM calls.
+    """
+    valid_blocks = [
+        b["text"].strip()
+        for b in page.blocks
+        if b.get("text") and b["text"].strip()
+    ]
 
+    if not valid_blocks:
+        return []
+
+    total_page_chars = sum(len(b) for b in valid_blocks)
+    if total_page_chars <= MAX_CHUNK_CHARS:
+        return [make_chunk(page, 0, valid_blocks)]
+
+    chunks = []
     current_blocks = []
     current_length = 0
 
-    for block in page.blocks:
-        text = block["text"].strip()
-
-        if not text:
-            continue
-
+    for text in valid_blocks:
         current_blocks.append(text)
         current_length += len(text)
 
-        # Keep accumulating until the chunk has
-        # enough content to be useful.
-        if current_length < MIN_CHUNK_CHARS:
-            continue
-
-        # Once we reach our target size, emit it.
         if current_length >= MAX_CHUNK_CHARS:
             chunks.append(
                 make_chunk(
@@ -44,19 +52,29 @@ def chunk_page(page: ExtractedPage) -> list[ChunkData]:
                     current_blocks,
                 )
             )
-
             current_blocks = []
             current_length = 0
 
-    # Don't lose the final partial chunk.
     if current_blocks:
-        chunks.append(
-            make_chunk(
-                page,
-                len(chunks),
-                current_blocks,
+        # If the leftover text is too short and we already have a previous chunk,
+        # merge it into the previous chunk instead of emitting an orphan micro-chunk.
+        if chunks and current_length < MIN_CHUNK_CHARS:
+            prev = chunks[-1]
+            merged_content = prev.content + "\n\n" + "\n\n".join(current_blocks)
+            chunks[-1] = ChunkData(
+                page=prev.page,
+                chunk_index=prev.chunk_index,
+                content=merged_content,
+                chunk_type=prev.chunk_type,
             )
-        )
+        else:
+            chunks.append(
+                make_chunk(
+                    page,
+                    len(chunks),
+                    current_blocks,
+                )
+            )
 
     return chunks
 

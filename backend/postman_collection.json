@@ -166,6 +166,20 @@
             "description": "Deletes a document and cascades to its chunks, facts, and associated relationships."
           },
           "response": []
+        },
+        {
+          "name": "Reset Entire Knowledge Layer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "reset"]
+            },
+            "description": "Completely resets the knowledge layer: deletes all documents, chunks, facts, and relationships."
+          },
+          "response": []
         }
       ]
     },

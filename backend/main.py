@@ -15,17 +15,23 @@ from ingestion.chunker import chunk_page
 from facts.pipeline import process_document
 from facts.reasoner import run_comparison_for_document
 
-from api.routes import documents, facts, relationships, showcase, stats
+from api.routes import documents, facts, relationships, showcase, stats, settings, graph
+
+
+from sqlalchemy import text
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Ensure database tables and vector extensions are created on startup."""
+    """Ensure database tables, schema migrations, and vector extensions are created on startup."""
     try:
         Base.metadata.create_all(bind=engine)
-        print("[Startup] Database tables verified.")
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message TEXT;"))
+            conn.execute(text("ALTER TABLE documents ALTER COLUMN status TYPE VARCHAR(50);"))
+        print("[Startup] Database tables and schema verified.")
     except Exception as exc:
-        print(f"[Startup Warning] Could not automatically create tables: {exc}")
+        print(f"[Startup Warning] Schema verification note: {exc}")
     yield
 
 
@@ -55,6 +61,8 @@ app.include_router(facts.router, prefix="/api")
 app.include_router(relationships.router, prefix="/api")
 app.include_router(showcase.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")
+app.include_router(graph.router, prefix="/api")
 
 # Mount Frontend UI (served at root '/')
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

@@ -64,13 +64,16 @@ Rules:
 """
 
 
+from facts.llm_client import call_structured_llm
+
+
 def compare_facts(
     fact_a: Fact,
     fact_b: Fact,
     max_retries: int = 3,
 ) -> ComparisonResult:
     """
-    Ask Gemini to compare two facts and classify their relationship.
+    Ask LLM (Gemini or Groq) to compare two facts and classify their relationship.
     """
 
     def format_fact(fact: Fact, label: str) -> str:
@@ -97,33 +100,11 @@ def compare_facts(
         "Compare these two facts and classify their relationship."
     )
 
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=settings.gemini_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=COMPARISON_SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=ComparisonResult,
-                ),
-            )
-
-            return ComparisonResult.model_validate_json(response.text)
-
-        except Exception as exc:
-            if attempt == max_retries - 1:
-                raise
-
-            delay = 2 ** attempt
-            print(
-                f"Gemini comparison failed "
-                f"(attempt {attempt + 1}/{max_retries}). "
-                f"Retrying in {delay}s... Error: {exc}"
-            )
-            time.sleep(delay)
-
-    raise RuntimeError("Unreachable")
+    return call_structured_llm(
+        prompt=prompt,
+        system_instruction=COMPARISON_SYSTEM_PROMPT,
+        response_schema=ComparisonResult,
+    )
 
 
 def already_compared(db: Session, fact_a_id, fact_b_id) -> bool:
@@ -142,13 +123,14 @@ def already_compared(db: Session, fact_a_id, fact_b_id) -> bool:
 def run_comparison_for_document(
     db: Session,
     document_id,
-    search_limit: int = 5,
+    search_limit: int = 3,
 ) -> int:
     """
     For every embedded fact in a document, find similar facts from other
-    documents and classify the relationship via Gemini.
+    documents and classify the relationship via LLM.
 
     Skips pairs that have already been compared.
+    Uses throttling and candidate limits to avoid triggering API rate limits.
     Returns the total number of relationships saved.
     """
     facts = (
@@ -190,29 +172,35 @@ def run_comparison_for_document(
 
                 if result.relationship_type == RelationshipType.UNRELATED:
                     print(f"  → unrelated, skipping")
-                    continue
+                else:
+                    relationship = Relationship(
+                        fact_a_id=fact.id,
+                        fact_b_id=candidate.id,
+                        relationship_type=result.relationship_type.value,
+                        explanation=result.explanation,
+                        confidence=result.confidence,
+                    )
 
-                relationship = Relationship(
-                    fact_a_id=fact.id,
-                    fact_b_id=candidate.id,
-                    relationship_type=result.relationship_type.value,
-                    explanation=result.explanation,
-                    confidence=result.confidence,
-                )
+                    db.add(relationship)
+                    db.commit()
 
-                db.add(relationship)
-                db.commit()
+                    total_relationships += 1
 
-                total_relationships += 1
+                    print(
+                        f"  → {result.relationship_type.value} "
+                        f"(confidence: {result.confidence:.2f})"
+                    )
+                    print(f"     {result.explanation[:120]}...")
 
-                print(
-                    f"  → {result.relationship_type.value} "
-                    f"(confidence: {result.confidence:.2f})"
-                )
-                print(f"     {result.explanation[:120]}...")
+                # Throttle delay between comparison calls to avoid RPM rate limits
+                time.sleep(2.0)
 
             except Exception as exc:
-                print(f"  → comparison FAILED: {exc}")
+                err_msg = str(exc)
+                print(f"  → comparison FAILED: {err_msg}")
+                if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                    print("  → Hit rate limit in reasoner, pausing 5s for quota cooldown...")
+                    time.sleep(5.0)
                 continue
 
     return total_relationships

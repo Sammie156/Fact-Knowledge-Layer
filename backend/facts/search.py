@@ -4,7 +4,7 @@ from core.models import Fact
 from facts.matcher import candidate_score
 
 
-SIMILARITY_THRESHOLD = 0.68
+SIMILARITY_THRESHOLD = 0.75
 
 
 def find_similar_facts(

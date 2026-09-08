@@ -10,16 +10,14 @@ from facts.schemas import FactExtractionResult
 from facts.embed_pipeline import deduplicate_facts, embed_document_facts
 
 
-# Number of chunks sent to Gemini in a single API call.
-# 5 is a safe default — large enough to cut calls by 5x,
-# small enough that the prompt stays well within context limits
-# even for dense financial table chunks.
-BATCH_SIZE = 5
+# Number of chunks sent to LLM in a single API call.
+# 3 is optimal with our larger 4500-char chunks (~13.5k chars total),
+# keeping the prompt concise, focused, and well within context limits.
+BATCH_SIZE = 3
 
-# Seconds to sleep between batch calls to stay within free tier
-# rate limits (15 RPM for flash models).
-# At BATCH_SIZE=5 and 1.5s sleep: ~20 calls/min for a 150-chunk doc.
-BATCH_SLEEP = 1.5
+# Seconds to sleep between batch calls to strictly stay within free tier
+# rate limits (15 RPM for Gemini Flash models, requires >= 4.0s cycle).
+BATCH_SLEEP = 3.5
 
 
 def process_document(

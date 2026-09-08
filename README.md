@@ -73,7 +73,7 @@ Create a `.env` file in the project root:
 ```env
 DATABASE_URL=postgresql+psycopg://postgres:factstuff@localhost:5432/factdb
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash
 ```
 
 ### 3. Start PostgreSQL with pgvector
@@ -136,6 +136,7 @@ A ready-to-use Postman Collection v2.1 is included at [`backend/postman_collecti
 | `GET` | `/api/documents` | List all ingested documents with status, page counts, and fact counts. |
 | `GET` | `/api/documents/{id}` | Get document details and processing status. |
 | `DELETE`| `/api/documents/{id}` | Cascade delete document, chunks, facts, and linked relationships. |
+| `POST` | `/api/documents/reset` | Completely resets knowledge layer (deletes all docs, chunks, facts, and links). |
 | `POST` | `/api/documents/{id}/reprocess` | Re-run extraction and comparison for an existing document. |
 | `GET` | `/api/facts` | Query/search grounded facts (filters: `document_id`, `entity`, `attribute`, `search`). |
 | `GET` | `/api/facts/{id}` | Retrieve a specific fact by ID with grounded quote and chunk. |
@@ -144,6 +145,8 @@ A ready-to-use Postman Collection v2.1 is included at [`backend/postman_collecti
 | `POST` | `/api/relationships/compare` | Trigger cross-document comparison across completed documents. |
 | `GET` | `/api/showcase` | Returns the Four Required Assignment Cases. |
 | `GET` | `/api/stats` | System overview counts (documents, chunks, facts, relationships by type). |
+| `GET` | `/api/settings` | Inspect active LLM provider (Gemini / Groq) and available models. |
+| `POST` | `/api/settings` | Dynamically switch active LLM provider, target model, or runtime API key. |
 | `GET` | `/api/health` | Service and database readiness check. |
 
 ---
@@ -225,7 +228,7 @@ The system specifically targets and demonstrates the four cases required by the 
   1. *Qualifier Extraction*: System prompt forces the LLM to extract explicit reporting qualifiers and time scopes rather than inferring them implicitly.
   2. *Confidence Scoring*: Low-confidence extractions where header alignment is ambiguous are scored with `confidence < 0.70`.
   3. *In-Document Deduplication*: Duplicate claims with conflicting scopes are filtered by keeping highest-confidence verified facts.
-- **Proposed Future Improvement**: Implement coordinate-based table cell reconstruction using PDF vector drawing paths or pass raster image crops of tabular regions directly to multimodal vision models (e.g. Gemini 2.5 Flash Vision).
+- **Proposed Future Improvement**: Implement coordinate-based table cell reconstruction using PDF vector drawing paths or pass raster image crops of tabular regions directly to multimodal vision models (e.g. Gemini 3.5 Flash Vision).
 
 ---
 

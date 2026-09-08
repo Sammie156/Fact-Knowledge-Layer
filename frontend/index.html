@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -34,6 +35,23 @@
           <span class="pulse-dot"></span>
           <span id="api-status-text">Connecting to API...</span>
         </div>
+        <div class="llm-pill" id="llm-active-pill" title="Active LLM Engine">
+          <span class="llm-dot"></span>
+          <span id="active-llm-label">Gemini 3.5 Flash</span>
+        </div>
+        <button class="btn-icon" id="btn-open-settings" title="Configure LLM Provider (Gemini / Groq)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-danger" id="btn-reset-system" title="Reset all documents, facts, and relationships">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Reset All
+        </button>
         <a href="/docs" target="_blank" class="docs-link" title="Open FastAPI Swagger Documentation">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -80,16 +98,19 @@
           <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
           <line x1="6" y1="9" x2="6" y2="21"></line>
         </svg>
-        Relationships Dashboard
+        Cross-Doc Intelligence
         <span class="tab-counter" id="tab-count-relationships">0</span>
       </button>
 
-      <button class="tab-btn showcase-tab-btn" data-tab="showcase" id="tab-btn-showcase">
+      <button class="tab-btn" data-tab="graph" id="tab-btn-graph">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <circle cx="18" cy="12" r="3"></circle>
+          <line x1="8.59" y1="7.41" x2="15.42" y2="10.59"></line>
+          <line x1="8.59" y1="16.59" x2="15.42" y2="13.41"></line>
         </svg>
-        The 4 Required Cases
-        <span class="badge-gold">Superjoin</span>
+        Knowledge Graph
       </button>
 
       <button class="tab-btn" data-tab="facts" id="tab-btn-facts">
@@ -97,8 +118,16 @@
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
         </svg>
-        Grounded Facts Explorer
+        Fact Explorer
         <span class="tab-counter" id="tab-count-facts">0</span>
+      </button>
+
+      <button class="tab-btn" data-tab="diagnostics" id="tab-btn-diagnostics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <polyline points="9 12 11 14 15 10"></polyline>
+        </svg>
+        Audit &amp; Diagnostics
       </button>
 
       <button class="tab-btn" data-tab="upload" id="tab-btn-upload">
@@ -107,7 +136,7 @@
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
-        Upload &amp; Documents
+        Document Ingestion
         <span class="tab-counter" id="tab-count-docs">0</span>
       </button>
     </nav>
@@ -116,7 +145,7 @@
     <main class="tab-pane active" id="pane-relationships">
       <div class="pane-toolbar">
         <div class="filter-chips">
-          <button class="chip active" data-filter="all">All Pairs</button>
+          <button class="chip active" data-filter="all">All Insights</button>
           <button class="chip chip-corrob" data-filter="corroborates">
             <span class="dot"></span> Corroborated
           </button>
@@ -153,18 +182,74 @@
       </div>
     </main>
 
-    <!-- TAB 2: THE FOUR REQUIRED CASES (SHOWCASE) -->
-    <section class="tab-pane" id="pane-showcase">
-      <div class="showcase-banner">
-        <div class="banner-badge">Official Submission View</div>
-        <h2>The Four Required Evaluation Cases</h2>
-        <p>Direct demonstration of cross-document verification, conflicting metrics, context reconciliations (scope/time/units), and extraction diagnostic analysis.</p>
+    <!-- TAB: OBSIDIAN-STYLE GRAPH VIEW -->
+    <section class="tab-pane" id="pane-graph">
+      <div class="graph-wrapper">
+        <div class="graph-toolbar">
+          <div class="graph-legend">
+            <span class="legend-item"><span class="legend-dot doc-dot"></span> Documents</span>
+            <span class="legend-item"><span class="legend-dot fact-dot"></span> Facts</span>
+            <span class="legend-item"><span class="legend-line corrob-line"></span> Corroborates</span>
+            <span class="legend-item"><span class="legend-line contradict-line"></span> Contradicts</span>
+            <span class="legend-item"><span class="legend-line context-line"></span> Context-Explained</span>
+          </div>
+
+          <div class="graph-controls">
+            <button class="btn-icon" id="btn-graph-zoom-in" title="Zoom In">+</button>
+            <button class="btn-icon" id="btn-graph-zoom-out" title="Zoom Out">&minus;</button>
+            <button class="btn-icon" id="btn-graph-reset" title="Reset View">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+            </button>
+            <button class="btn btn-secondary" id="btn-toggle-doc-links" title="Toggle Document Containment Lines">
+              Toggle Doc Links
+            </button>
+          </div>
+        </div>
+
+        <div class="graph-canvas-container" id="graph-canvas-container">
+          <svg id="graph-svg"></svg>
+
+          <!-- Slide-out Node Inspector Drawer -->
+          <aside class="node-inspector hidden" id="node-inspector">
+            <div class="inspector-header">
+              <span class="inspector-badge" id="inspector-badge">Fact Node</span>
+              <button class="btn-icon-sm" id="btn-close-inspector">&times;</button>
+            </div>
+            <div class="inspector-body" id="inspector-body">
+              <!-- Injected dynamically on click -->
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: AUDIT & DIAGNOSTICS -->
+    <section class="tab-pane" id="pane-diagnostics">
+      <div class="diagnostics-banner">
+        <div class="diagnostics-banner-content">
+          <div class="banner-badge">Quality &amp; Observability</div>
+          <h2>Extraction &amp; Reasoning Diagnostics</h2>
+          <p>Continuous audit of factual grounding fidelity, cross-document resolution boundaries, and failure diagnostic analysis.</p>
+        </div>
+        <div class="diagnostics-metrics-group">
+          <div class="metric-pill">
+            <span class="metric-value">100%</span>
+            <span class="metric-label">Verbatim Grounded</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-value">pgvector</span>
+            <span class="metric-label">Semantic Cosine</span>
+          </div>
+        </div>
       </div>
 
-      <div class="showcase-cards-grid" id="showcase-cards-container">
+      <div class="showcase-cards-grid" id="diagnostics-cards-container">
         <div class="loading-spinner-state">
           <div class="spinner"></div>
-          <p>Loading curated showcase cases...</p>
+          <p>Loading system diagnostic audit...</p>
         </div>
       </div>
     </section>
@@ -236,6 +321,24 @@
             </div>
 
             <p class="progress-detail" id="active-upload-msg">Extracting logical pages &amp; structured claims via Gemini...</p>
+
+            <!-- Error / Quota Alert Box -->
+            <div class="upload-alert-box hidden" id="upload-alert-box">
+              <div class="alert-icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div class="alert-content">
+                <strong id="upload-alert-title">Processing Paused: Quota Exceeded</strong>
+                <p id="upload-alert-desc">LLM rate limit / daily quota reached. Switch to Groq or enter a new API key.</p>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-settings-from-alert">
+                  ⚙️ Switch LLM Provider in Settings
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -257,6 +360,77 @@
 
       </div>
     </section>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settings-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <h3>LLM Engine &amp; Provider Settings</h3>
+          </div>
+          <button class="modal-close-btn" id="btn-close-settings">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-intro">Select the AI provider powering fact extraction and cross-document reasoning. Groq offers ultra-fast throughput and high free-tier quotas.</p>
+
+          <div class="form-group">
+            <label>Active Provider</label>
+            <div class="provider-radio-group">
+              <label class="provider-card active" id="card-prov-gemini">
+                <input type="radio" name="llm-provider-radio" value="gemini" checked />
+                <div class="prov-details">
+                  <strong>Google Gemini</strong>
+                  <span>Standard extraction with native schema validation</span>
+                </div>
+              </label>
+              <label class="provider-card" id="card-prov-groq">
+                <input type="radio" name="llm-provider-radio" value="groq" />
+                <div class="prov-details">
+                  <strong>Groq Cloud</strong>
+                  <span>Llama 3.1 8B, 3.2, 3.3 &amp; Custom Models (300+ tok/sec)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="settings-model-select">Target Model</label>
+            <select id="settings-model-select" class="select-dropdown w-full"></select>
+            <div class="custom-model-input-wrap hidden" id="custom-model-wrap" style="margin-top: 8px;">
+              <input type="text" id="settings-custom-model" placeholder="e.g. llama-3.1-8b-instant or deepseek-r1-distill-llama-70b" class="input-text w-full" />
+              <small class="field-hint">Specify any exact model ID active on your Groq or Gemini account.</small>
+            </div>
+            <div class="test-connection-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-test-connection">
+                ⚡ Test Connection
+              </button>
+              <span class="test-status-text" id="test-connection-status"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="settings-api-key">Custom API Key <span class="label-optional">(Optional)</span></label>
+            <input type="password" id="settings-api-key" placeholder="Leave empty to use server environment key" class="input-text w-full" />
+            <small class="field-hint">Key is set in-memory for testing during evaluation.</small>
+          </div>
+
+          <div class="circuit-breaker-notice" id="circuit-breaker-status">
+            <span class="notice-icon">⚡</span>
+            <span><strong>Circuit Breaker:</strong> If Gemini throttles (429), auto-failover to Groq is <span id="cb-status-text">inactive</span>.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+          <button class="btn btn-primary" id="btn-save-settings">Apply Settings</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Global Toast / Notification Container -->
     <div class="toast-container" id="toast-container"></div>

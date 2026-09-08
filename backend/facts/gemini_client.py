@@ -5,9 +5,7 @@ from google.genai import types
 
 from core.config import settings
 from facts.schemas import FactExtractionResult, BatchExtractionResult
-
-
-client = genai.Client(api_key=settings.gemini_api_key)
+from facts.llm_client import call_structured_llm
 
 
 SYSTEM_PROMPT = """
@@ -58,14 +56,8 @@ def extract_facts_batch(
     max_retries: int = 3,
 ) -> BatchExtractionResult:
     """
-    Extract facts from multiple chunks in a single Gemini call.
-
-    chunks is a list of (chunk_index, content) tuples. chunk_index is
-    the position within the batch (0-based) and is echoed back in the
-    response so each fact can be attributed to the right chunk.
-
-    Using batches reduces API calls by ~5x and keeps us within free
-    tier rate limits without aggressive sleeping.
+    Extract facts from multiple chunks in a single LLM call.
+    Supports Gemini and Groq via call_structured_llm.
     """
     formatted = "\n\n".join(
         f"CHUNK {idx}:\n{'-' * 40}\n{content}\n{'-' * 40}"
@@ -82,33 +74,11 @@ Every chunk must appear in your response even if it has no facts.
 {formatted}
 """
 
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=settings.gemini_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=BatchExtractionResult,
-                ),
-            )
-
-            return BatchExtractionResult.model_validate_json(response.text)
-
-        except Exception as exc:
-            if attempt == max_retries - 1:
-                raise
-
-            delay = 2 ** attempt
-            print(
-                f"Gemini batch request failed "
-                f"(attempt {attempt + 1}/{max_retries}). "
-                f"Retrying in {delay}s... Error: {exc}"
-            )
-            time.sleep(delay)
-
-    raise RuntimeError("Unreachable")
+    return call_structured_llm(
+        prompt=prompt,
+        system_instruction=SYSTEM_PROMPT,
+        response_schema=BatchExtractionResult,
+    )
 
 
 # ------------------------------------------------------------------
