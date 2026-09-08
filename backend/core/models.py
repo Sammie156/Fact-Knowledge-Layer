@@ -158,3 +158,46 @@ class Fact(Base):
 
     document = relationship("Document", back_populates="facts")
     chunk = relationship("Chunk", back_populates="facts")
+
+
+class Relationship(Base):
+    __tablename__ = "relationships"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    fact_a_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("facts.id"),
+        nullable=False,
+    )
+
+    fact_b_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("facts.id"),
+        nullable=False,
+    )
+
+    relationship_type: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+    )
+
+    explanation: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    confidence: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default="now()",
+    )

@@ -9,7 +9,7 @@ from ingestion.chunker import chunk_page
 from facts.pipeline import process_document
 
 
-PDF_PATH = "C:/Users/saman/Downloads/02-delhivery-annual-report-fy24-excerpt.pdf"
+PDF_PATH = "C:/Users/saman/Downloads/03-delhivery-q4-fy24-earnings-presentation.pdf"
 
 
 def ingest_pdf(db, pdf_path: str) -> Document:
