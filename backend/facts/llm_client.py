@@ -128,7 +128,7 @@ def call_groq(
 
             if attempt == max_retries - 1:
                 raise RuntimeError(f"Groq API request failed: {err_detail}")
-            delay = 2 ** attempt
+            delay = 5 * (attempt + 1) if http_err.code == 429 else 2 ** attempt
             print(f"[Groq Client] Attempt {attempt + 1} failed ({err_detail}). Retrying in {delay}s...")
             time.sleep(delay)
 
@@ -186,9 +186,18 @@ def call_gemini(
                         f"\n⚠️ [Circuit Breaker] Gemini rate limit hit ({exc})! "
                         f"Auto-failing over to Groq ({settings.groq_model})..."
                     )
-                    return call_groq(prompt, system_instruction, response_schema, model=settings.groq_model)
-                else:
+                    try:
+                        return call_groq(prompt, system_instruction, response_schema, model=settings.groq_model)
+                    except Exception as groq_exc:
+                        print(f"[Circuit Breaker] Groq fallback failed ({groq_exc}), falling back to retry with cooldown...")
+
+                if attempt == max_retries - 1:
                     raise RuntimeError(f"Gemini API Quota Exceeded (429 Rate Limit): {exc}")
+
+                delay = 5 * (attempt + 1)
+                print(f"[Gemini Client] Rate limit hit. Cooldown pausing {delay}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(delay)
+                continue
 
             if attempt == max_retries - 1:
                 raise
