@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, JSON, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from core.database import Base
 
@@ -148,6 +149,11 @@ class Fact(Base):
     confidence: Mapped[float] = mapped_column(
         Float,
         nullable=False,
+    )
+
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(768),
+        nullable=True,
     )
 
     document = relationship("Document", back_populates="facts")
