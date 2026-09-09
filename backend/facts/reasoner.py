@@ -10,8 +10,6 @@ from core.config import settings
 from core.models import Fact, Relationship
 from facts.search import find_similar_facts
 
-client = genai.Client(api_key=settings.gemini_api_key)
-
 
 class RelationshipType(str, Enum):
     CORROBORATES = "corroborates"

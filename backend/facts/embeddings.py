@@ -4,9 +4,12 @@ from google.genai import types
 from core.config import settings
 
 
-client = genai.Client(
-    api_key=settings.gemini_api_key
-)
+def _get_client():
+    if not settings.gemini_api_key:
+        raise ValueError(
+            "GEMINI_API_KEY is not configured. Please add it to your .env file or configure it in the UI Settings (⚙️)."
+        )
+    return genai.Client(api_key=settings.gemini_api_key)
 
 
 def build_fact_text(
@@ -42,6 +45,7 @@ def build_fact_text(
 
 
 def generate_embedding(text: str) -> list[float]:
+    client = _get_client()
     response = client.models.embed_content(
         model="gemini-embedding-001",
         contents=text,
@@ -64,6 +68,7 @@ def generate_embeddings_batch(
     if not texts:
         return []
 
+    client = _get_client()
     import time
     for attempt in range(max_retries):
         try:

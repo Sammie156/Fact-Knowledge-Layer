@@ -3,7 +3,9 @@
  * Communicates with FastAPI REST API endpoints.
  */
 
-const API_BASE = window.location.port === "8000" ? "/api" : "http://localhost:8000/api";
+const API_BASE = window.location.protocol.startsWith("http")
+  ? `${window.location.origin}/api`
+  : "http://localhost:8000/api";
 
 const state = {
   activeTab: "relationships",

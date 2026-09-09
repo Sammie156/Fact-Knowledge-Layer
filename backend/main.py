@@ -25,11 +25,13 @@ from sqlalchemy import text
 async def lifespan(app: FastAPI):
     """Ensure database tables, schema migrations, and vector extensions are created on startup."""
     try:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         Base.metadata.create_all(bind=engine)
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message TEXT;"))
             conn.execute(text("ALTER TABLE documents ALTER COLUMN status TYPE VARCHAR(50);"))
-        print("[Startup] Database tables and schema verified.")
+        print("[Startup] Database tables, pgvector extension, and schema verified.")
     except Exception as exc:
         print(f"[Startup Warning] Schema verification note: {exc}")
     yield
@@ -65,8 +67,16 @@ app.include_router(settings.router, prefix="/api")
 app.include_router(graph.router, prefix="/api")
 
 # Mount Frontend UI (served at root '/')
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-if FRONTEND_DIR.exists():
+candidate_frontend_dirs = [
+    Path(__file__).resolve().parent.parent / "frontend",
+    Path(__file__).resolve().parent / "frontend",
+    Path("/app/frontend"),
+    Path("frontend"),
+    Path("../frontend"),
+]
+FRONTEND_DIR = next((d for d in candidate_frontend_dirs if d.exists()), None)
+if FRONTEND_DIR:
+    print(f"[Startup] Serving Frontend UI from: {FRONTEND_DIR}")
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 else:
     @app.get("/", include_in_schema=False)

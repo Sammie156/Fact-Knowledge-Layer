@@ -1,6 +1,8 @@
 services:
   db:
     image: pgvector/pgvector:pg16
+    container_name: fact-knowledge-db
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=factdb
       - POSTGRES_USER=postgres
@@ -15,19 +17,29 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build: ./backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fact-knowledge-app
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql+psycopg://postgres:factstuff@db:5432/factdb
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+    ports:
+      - "8000:8000"
     volumes:
-      # Mount a local pdfs/ folder so you can pass PDFs to the container
+      # Persist uploaded PDFs across container restarts
+      - ./uploads:/app/backend/uploads
+      # Optional folder for manual CLI PDF testing
       - ./pdfs:/app/pdfs
-    # Keep the container running so you can exec into it
-    command: tail -f /dev/null
 
 volumes:
   pgdata:
