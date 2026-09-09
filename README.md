@@ -6,6 +6,8 @@ Includes a modern **Web UI Dashboard**, an **Obsidian-inspired Interactive Knowl
 
 ---
 
+## VIDEO DEMO: [VIDEO HERE](https://drive.google.com/file/d/1ZhiXsNYjBpqMtz9yDm8zfaEnpvzJUEZ5/view?usp=drivesdk)
+
 ## Quickstart (The Simplest Way - 2 Steps with Docker)
 
 > **No complex setup needed.** If you have Docker installed, the entire system—including **PostgreSQL with pgvector**, database migrations, API backend, and the interactive frontend dashboard—starts with a single command.
