@@ -4,15 +4,14 @@ An AI-powered system that extracts structured factual claims from unstructured P
 
 Includes a modern **Web UI Dashboard**, an **Obsidian-inspired Interactive Knowledge Graph**, a **Multi-LLM Switcher** (Gemini & Groq), and a complete **FastAPI REST API**.
 
-Built for the **Superjoin Engineering Intern Assignment (VIT 2026)**.
-
 ---
 
-## ⚡ Quickstart (The Simplest Way - 2 Steps with Docker)
+## Quickstart (The Simplest Way - 2 Steps with Docker)
 
 > **No complex setup needed.** If you have Docker installed, the entire system—including **PostgreSQL with pgvector**, database migrations, API backend, and the interactive frontend dashboard—starts with a single command.
 
 ### 1. Clone the repository and configure your API key
+
 ```bash
 git clone https://github.com/Sammie156/Fact-Knowledge-Layer.git
 cd Fact-Knowledge-Layer
@@ -20,26 +19,32 @@ cd Fact-Knowledge-Layer
 # Copy the environment template
 cp .env.example .env
 ```
+
 Open `.env` and paste your free **Google Gemini API Key** ([get one here in 30 seconds](https://aistudio.google.com/)):
+
 ```env
 GEMINI_API_KEY=AIzaSyYourKeyHere
 ```
 
 ### 2. Start the entire application
+
 ```bash
 docker compose up --build
 ```
 
 **That's it!** Once the containers start, open your browser:
+
 - 🌐 **Web Dashboard & Interactive Graph**: [http://localhost:8000](http://localhost:8000)
 - 📚 **Interactive Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - 🩺 **Health Check**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
 
 To stop the application at any time, press `Ctrl+C` or run:
+
 ```bash
 docker compose down
 ```
-*(Uploaded documents and database vector records are safely persisted in Docker volumes across restarts).*
+
+_(Uploaded documents and database vector records are safely persisted in Docker volumes across restarts)._
 
 ---
 
@@ -58,6 +63,7 @@ docker compose down
 The application is fully containerized and can be deployed anywhere Docker is supported.
 
 ### Option A: Deploy to any VPS (DigitalOcean Droplet, AWS EC2, Hetzner, Linode)
+
 1. SSH into your server and install Docker & Docker Compose:
    ```bash
    sudo apt-get update && sudo apt-get install -y docker.io docker-compose-plugin
@@ -78,6 +84,7 @@ The application is fully containerized and can be deployed anywhere Docker is su
 ---
 
 ### Option B: Deploy to PaaS (Render, Railway, Fly.io)
+
 The repository includes a production-ready root [`Dockerfile`](Dockerfile) that bundles the FastAPI backend, background workers, and static frontend into a single container.
 
 1. **Database**: Provision a PostgreSQL database with the `pgvector` extension enabled (available natively on [Neon](https://neon.tech/), [Supabase](https://supabase.com/), or Railway Postgres).
@@ -89,22 +96,26 @@ The repository includes a production-ready root [`Dockerfile`](Dockerfile) that 
 
 ---
 
-## 🛠️ Alternative Setup (Local Python Development)
+## Alternative Setup (Local Python Development)
 
 If you prefer developing locally outside Docker, follow these steps:
 
 ### 1. Prerequisites
+
 - **Python**: 3.11 or 3.12
 - **Docker**: For running PostgreSQL with `pgvector`
 - **Google Gemini API Key**: [Get key here](https://aistudio.google.com/)
 
 ### 2. Start PostgreSQL with pgvector
+
 ```bash
 docker compose up -d db
 ```
+
 This spins up PostgreSQL 16 with `pgvector` on port `5432`.
 
 ### 3. Install Python Dependencies
+
 ```bash
 # Create and activate virtual environment
 python -m venv .venv
@@ -115,7 +126,9 @@ pip install -r backend/requirements.txt
 ```
 
 ### 4. Configure `.env`
+
 Create `.env` in the project root:
+
 ```env
 DATABASE_URL=postgresql+psycopg://postgres:factstuff@localhost:5432/factdb
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -123,10 +136,12 @@ GEMINI_MODEL=gemini-3.5-flash
 ```
 
 ### 5. Run the Application
+
 ```bash
 cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
 Open [http://localhost:8000](http://localhost:8000) to access the Web UI and API.
 
 ---
@@ -194,74 +209,29 @@ A pre-configured Postman Collection v2.1 is included at [`backend/postman_collec
    - `GET /api/facts` — Query facts with filters (entity, attribute, keyword search).
    - `GET /api/relationships` — Filter cross-document links (`corroborates`, `contradicts`, `context_explained`).
    - `GET /api/graph` — Graph nodes and links for visualization.
-   - `GET /api/showcase` — Directly inspect the Four Assignment Cases.
 
 ---
 
 ## 📋 REST API Reference
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/documents/upload` | Upload PDF file (multipart/form-data). Supports async background task. |
-| `GET` | `/api/documents` | List all ingested documents with status, page counts, and fact counts. |
-| `GET` | `/api/documents/{id}` | Get document details and processing status. |
-| `DELETE`| `/api/documents/{id}` | Cascade delete document, chunks, facts, and linked relationships. |
-| `POST` | `/api/documents/reset` | Completely resets knowledge layer (deletes all docs, chunks, facts, and links). |
-| `POST` | `/api/documents/{id}/reprocess` | Re-run extraction and comparison for an existing document. |
-| `GET` | `/api/facts` | Query/search grounded facts (filters: `document_id`, `entity`, `attribute`, `search`). |
-| `GET` | `/api/facts/{id}` | Retrieve a specific fact by ID with grounded quote and chunk metadata. |
-| `GET` | `/api/relationships` | List cross-document relationships (filter by `relationship_type` or `document_id`). |
-| `GET` | `/api/relationships/{id}` | Retrieve comparative details of a specific relationship pair. |
-| `POST` | `/api/relationships/compare` | Trigger cross-document comparison across completed documents. |
-| `GET` | `/api/graph` | Graph nodes and links formatted for force-directed knowledge graph visualization. |
-| `GET` | `/api/showcase` | Returns the Four Required Assignment Cases. |
-| `GET` | `/api/stats` | System overview counts (documents, chunks, facts, relationships by type). |
-| `GET` | `/api/settings` | Inspect active LLM provider (Gemini / Groq) and live available models. |
-| `POST` | `/api/settings` | Dynamically switch active LLM provider, target model, or runtime API key. |
-| `GET` | `/api/health` | Service and database readiness check. |
-
----
-
-## 🎯 Show Us These Four Cases
-
-The system specifically targets and demonstrates the four cases required by the assignment using Delhivery filings:
-
-### Case 1: Fact Corroborated Across Documents
-- **Claim**: Corporate Registered Office of Delhivery Limited.
-- **Document 1 (Prospectus 2022)**:
-  - *Evidence*: `"Registered Office: N24-N34, S24-S34, Air Cargo Logistics Centre-II, Opposite Gate 6, Cargo Terminal, IGI Airport, New Delhi 110 037, India."`
-- **Document 2 (Annual Report FY24)**:
-  - *Evidence*: `"Corporate Office / Registered Office: Air Cargo Logistics Centre-II, Opp Gate 6, Cargo Terminal, IGI Airport, New Delhi - 110037."`
-- **System Reasoning**: Both documents corroborate the identical corporate registered facility at IGI Airport New Delhi 110037 despite slight syntactic variations in suite numbering and punctuation. Classified as `corroborates`.
-
-### Case 2: Genuine or Likely Contradiction
-- **Claim**: Active PIN Code Coverage / Volume Statistics for an identical historical period.
-- **Document 1 (Preliminary Prospectus Excerpt)**:
-  - *Value*: `17,000+ PIN codes covered as of Dec 31, 2021`
-- **Document 2 (Investor Presentation / Subsequent Filing)**:
-  - *Value*: `16,400 PIN codes covered as of Dec 31, 2021`
-- **System Reasoning**: Both documents report active PIN code coverage for the identical entity on the exact same reporting date, but provide materially conflicting numbers without reconciliation or restatement notes. Classified as `contradicts`.
-
-### Case 3: Apparent Contradiction Explained by Context
-- **Claim**: Delhivery Revenue from Operations for Fiscal Year 2024.
-- **Fact A (Standalone Financials)**:
-  - *Value*: `₹74,540.82 Million`
-  - *Qualifiers*: `basis: standalone`, `time_scope: FY2023-24`
-  - *Evidence*: `"Revenue from operations for the year ended March 31, 2024 stood at ₹ 74,540.82 million on a standalone basis."`
-- **Fact B (Consolidated Financials)**:
-  - *Value*: `₹81,424.87 Million`
-  - *Qualifiers*: `basis: consolidated`, `time_scope: FY2023-24`
-  - *Evidence*: `"Consolidated revenue from operations increased to ₹ 81,424.87 million for FY 2024."`
-- **System Reasoning**: Although both facts describe Delhivery's FY24 operating revenue, the reasoning engine recognizes the reporting basis qualifier: ₹74,540.82M reflects Standalone company operations, whereas ₹81,424.87M reflects Consolidated group revenue including subsidiaries. Reconciled and classified as `context_explained`.
-
-### Case 4: Extraction or Reasoning Failure Analysis & Improvement
-- **Failure Identified**: Column header misattribution in multi-year financial tables.
-- **Root Cause**: In multi-year balance sheets or income statements, stacked column headers (e.g. `FY24 Audited` vs `FY23 Audited` spanning `Standalone` vs `Consolidated`) are extracted by standard text-block extractors in linear top-to-bottom sequence. If text blocks interleave, numerical values in lower rows can become detached from their corresponding fiscal year column.
-- **How We Handled It**:
-  1. *Qualifier Extraction*: System prompt forces the LLM to extract explicit reporting qualifiers and time scopes rather than inferring them implicitly.
-  2. *Confidence Scoring*: Low-confidence extractions where header alignment is ambiguous are scored with `confidence < 0.70`.
-  3. *In-Document Deduplication*: Duplicate claims with conflicting scopes are filtered by keeping highest-confidence verified facts.
-- **Proposed Future Improvement**: Implement coordinate-based table cell reconstruction using PDF vector drawing paths or pass raster image crops of tabular regions directly to multimodal vision models (e.g. Gemini 3.5 Flash Vision).
+| Method   | Endpoint                        | Description                                                                            |
+| :------- | :------------------------------ | :------------------------------------------------------------------------------------- |
+| `POST`   | `/api/documents/upload`         | Upload PDF file (multipart/form-data). Supports async background task.                 |
+| `GET`    | `/api/documents`                | List all ingested documents with status, page counts, and fact counts.                 |
+| `GET`    | `/api/documents/{id}`           | Get document details and processing status.                                            |
+| `DELETE` | `/api/documents/{id}`           | Cascade delete document, chunks, facts, and linked relationships.                      |
+| `POST`   | `/api/documents/reset`          | Completely resets knowledge layer (deletes all docs, chunks, facts, and links).        |
+| `POST`   | `/api/documents/{id}/reprocess` | Re-run extraction and comparison for an existing document.                             |
+| `GET`    | `/api/facts`                    | Query/search grounded facts (filters: `document_id`, `entity`, `attribute`, `search`). |
+| `GET`    | `/api/facts/{id}`               | Retrieve a specific fact by ID with grounded quote and chunk metadata.                 |
+| `GET`    | `/api/relationships`            | List cross-document relationships (filter by `relationship_type` or `document_id`).    |
+| `GET`    | `/api/relationships/{id}`       | Retrieve comparative details of a specific relationship pair.                          |
+| `POST`   | `/api/relationships/compare`    | Trigger cross-document comparison across completed documents.                          |
+| `GET`    | `/api/graph`                    | Graph nodes and links formatted for force-directed knowledge graph visualization.      |
+| `GET`    | `/api/stats`                    | System overview counts (documents, chunks, facts, relationships by type).              |
+| `GET`    | `/api/settings`                 | Inspect active LLM provider (Gemini / Groq) and live available models.                 |
+| `POST`   | `/api/settings`                 | Dynamically switch active LLM provider, target model, or runtime API key.              |
+| `GET`    | `/api/health`                   | Service and database readiness check.                                                  |
 
 ---
 
